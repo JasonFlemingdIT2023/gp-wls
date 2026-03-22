@@ -34,12 +34,6 @@ def fatigue_life(sigma_a, sigma_m, T, R, k_s, noisy=True):
     
     return N_Log
     
-# Quick sanity check
-print(f"Base case:          {fatigue_life(200, 0, 20, 0, 1.0, noisy=False):.4f}")   # ~6.0 expected
-print(f"With noise:         {fatigue_life(200, 0, 20, 0, 1.0, noisy=True):.4f}")    # ~6.0 + small noise
-print(f"Higher load:        {fatigue_life(400, 0, 20, 0, 1.0, noisy=False):.4f}")   # smaller than base
-print(f"Positive sigma_m:   {fatigue_life(200, 200, 20, 0, 1.0, noisy=False):.4f}") # smaller than base
-print(f"High temperature:   {fatigue_life(200, 0, 300, 0, 1.0, noisy=False):.4f}")  # smaller than base
-print(f"Rough surface:      {fatigue_life(200, 0, 20, 0, 0.5, noisy=False):.4f}")   # smaller than base
+
 
 
