@@ -98,6 +98,7 @@ class GaussianProcess:
 
         return mu, var
     
+    
 
     def log_marginal_likelihood(self) -> torch.Tensor:
         """Compute the log marginal likelihood of the training data.
@@ -139,6 +140,8 @@ class GaussianProcess:
         t3 = -0.5 * n * torch.log(torch.tensor(2.0 * torch.pi, dtype=self._X_train.dtype))
 
         return t1 + t2 + t3
+    
+    
 
     def optimize_hyperparameters(self, n_steps: int = 50) -> None:
         """Optimize kernel hyperparameters by maximizing the log marginal likelihood.
@@ -155,10 +158,11 @@ class GaussianProcess:
         if self._X_train is None or self._y_train is None:
             raise RuntimeError("Call fit() before optimize_hyperparameters().")
 
+        # noise_var is kept fixed --> it acts as a numerical stability term,
+        # not as a model parameter. Only kernel hyperparameters are optimized.
         params = [
             self.kernel.log_length_scale,
             self.kernel.log_output_variance,
-            self.log_noise_var,
         ]
 
         optimizer = torch.optim.LBFGS(params, line_search_fn='strong_wolfe')
@@ -172,7 +176,7 @@ class GaussianProcess:
         for _ in range(n_steps):
             optimizer.step(closure)
 
-        # Re-fit so that _L and _alpha match the optimised hyperparameters
+        # Refit so that _L and _alpha match the optimized hyperparameters
         self.fit(self._X_train, self._y_train)
 
 
