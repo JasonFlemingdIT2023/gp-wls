@@ -97,5 +97,82 @@ class GaussianProcess:
         var = K_star_diag - (V ** 2).sum(dim=0)
 
         return mu, var
+    
+
+    def log_marginal_likelihood(self) -> torch.Tensor:
+        """Compute the log marginal likelihood of the training data.
+
+        log p(y | X, theta) = -0.5 * y^T alpha
+                              - sum(log(diag(L)))
+                              - n/2 * log(2*pi)
+
+        Uses torch.linalg.cholesky instead of our custom one so that autograd
+        can differentiate through K -> L -> LML with respect to theta.
+
+        Returns:
+            lml: Scalar tensor, differentiable w.r.t. kernel hyperparameters
+                 and log_noise_var.
+        """
+        if self._X_train is None or self._y_train is None:
+            raise RuntimeError("Call fit() before log_marginal_likelihood().")
+
+        n = self._X_train.shape[0]
+
+        # Rebuild K_y using current hyperparameters -- autograd tracks this path
+        K = self.kernel(self._X_train, self._X_train)
+        K_y = K + torch.exp(self.log_noise_var) * torch.eye(n, dtype=self._X_train.dtype)
+
+        # Differentiable Cholesky: gradient flows through L back to theta
+        L = torch.linalg.cholesky(K_y)
+
+        # Solve K_y @ alpha = y via two triangular solves (autograd-compatible)
+        v = torch.linalg.solve_triangular(L, self._y_train.unsqueeze(-1), upper=False)
+        alpha = torch.linalg.solve_triangular(L.T, v, upper=True).squeeze(-1)
+
+        # Term 1: data fit -0.5 * y^T @ alpha
+        t1 = -0.5 * torch.dot(self._y_train, alpha)
+
+        # Term 2: complexity penalty -sum(log(diag(L)))
+        t2 = -torch.log(L.diagonal()).sum()
+
+        # Term 3: normalisation constant -n/2 * log(2*pi)
+        t3 = -0.5 * n * torch.log(torch.tensor(2.0 * torch.pi, dtype=self._X_train.dtype))
+
+        return t1 + t2 + t3
+
+    def optimize_hyperparameters(self, n_steps: int = 50) -> None:
+        """Optimize kernel hyperparameters by maximizing the log marginal likelihood.
+
+        Uses PyTorch's L-BFGS with strong_wolfe line search--> the same Wolfe
+        conditions as the outer GP optimization loop, here applied to LML(theta).
+
+        After optimization, fit() is called once more so that _L and _alpha
+        reflect the updated hyperparameters and predict() stays consistent.
+
+        Args:
+            n_steps: Maximum L-BFGS steps. Default 50 is sufficient for 3 params.
+        """
+        if self._X_train is None or self._y_train is None:
+            raise RuntimeError("Call fit() before optimize_hyperparameters().")
+
+        params = [
+            self.kernel.log_length_scale,
+            self.kernel.log_output_variance,
+            self.log_noise_var,
+        ]
+
+        optimizer = torch.optim.LBFGS(params, line_search_fn='strong_wolfe')
+
+        def closure() -> torch.Tensor:
+            optimizer.zero_grad()
+            loss = -self.log_marginal_likelihood()  # minimise negative LML
+            loss.backward()
+            return loss
+
+        for _ in range(n_steps):
+            optimizer.step(closure)
+
+        # Re-fit so that _L and _alpha match the optimised hyperparameters
+        self.fit(self._X_train, self._y_train)
 
 
