@@ -7,6 +7,11 @@ from linesearch.wolfe import wolfe_line_search
 from kernels.matern import MaternKernel
 
 
+#Maximum number of points kept in the GP training set.
+#Older points are dropped (sliding window) to keep Cholesky O(N_MAX^3) constant.
+N_MAX = 30
+
+
 def _normalize(x: torch.Tensor, bounds_low: torch.Tensor, bounds_high: torch.Tensor) -> torch.Tensor:
     """Map physical inputs to [0, 1]^d.
 
@@ -86,21 +91,22 @@ def run(
     ground_truth: Callable,
     bounds_low: torch.Tensor,
     bounds_high: torch.Tensor,
-    n_init: int = 5,
-    n_iter: int = 20,
+    n_init: int = 10,
+    n_iter: int = 50,
     n_restarts: int = 3,
     grad_tol: float = 1e-3,
     max_inner: int = 50,
     noise_var: float = 1e-4,
     nu: float = 2.5,
-    noisy_obs: bool = True,
-    verbose: bool = True,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Run the GP-based Bayesian optimization loop.
+    noisy_obs: bool = False,
+    verbose: bool = False,
+    seed: int | None = None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Run the GP-based Bayesian optimization loop (with Wolfe line search).
 
     Works for any ground truth function and any input dimension d.
     The GP operates in normalized [0, 1]^d space; the ground truth receives
-    physical inputs obtained via denormalize().
+    physical inputs obtained via _denormalize().
 
     Algorithm:
         1. Sample n_init random points, evaluate ground_truth, fit GP.
@@ -109,8 +115,8 @@ def run(
              a. Run n_restarts inner loops (gradient ascent + Wolfe line search).
              b. Pick the candidate with highest posterior mean.
              c. Evaluate ground_truth at the candidate.
-             d. Add observation, refit GP and optimize hyperparameters.
-        4. Return the best observed point and its value.
+             d. Add observation, refit GP, optimize hyperparameters.
+        4. Return best point, best value, and full evaluation history for comparison.
 
     Args:
         ground_truth: Callable with signature f(x, noisy) -> (N,) tensor,
@@ -123,24 +129,29 @@ def run(
         grad_tol: Gradient norm threshold for inner loop convergence.
         max_inner: Maximum gradient steps per inner loop run.
         noise_var: Fixed observation noise variance (not optimized).
-        nu: Matern smoothness parameter (0.5, 1.5, or 2.5).
+        nu: Matérn smoothness parameter (0.5, 1.5, or 2.5).
         noisy_obs: If True, adds noise to ground_truth evaluations.
         verbose: If True, prints progress after each iteration.
+        seed: Random seed for reproducibility across methods.
 
     Returns:
-        best_x: (d,) best input found, in physical units.
-        best_y: Scalar tensor, best observed function value.
+        best_x:  (d,) best input found, in physical units.
+        best_y:  Scalar tensor, best observed function value.
+        history: (n_init + n_iter,) running best after each evaluation.
     """
-    dim = bounds_low.shape[0]   #d = 5 for fatigue, 6 for Hartmann
+    if seed is not None:
+        torch.manual_seed(seed)
 
-    #------------------------------------------------------------------
-    #Initialisation: random points in [0, 1]^d, evaluate true function
-    #------------------------------------------------------------------
+    dim = bounds_low.shape[0]
+
+
+    #Initialisation
     X_norm = torch.rand(n_init, dim)
     X_phys = _denormalize(X_norm, bounds_low, bounds_high)
     y = ground_truth(X_phys, noisy=noisy_obs)
 
-    #Build GP and fit on initial data
+    history = y.clone().tolist()
+
     kernel = MaternKernel(length_scale=1.0, output_variance=1.0, nu=nu)
     gp = GaussianProcess(kernel=kernel, noise_var=noise_var)
     gp.fit(X_norm, y)
@@ -151,12 +162,9 @@ def run(
         print(f"Init: best y = {y[best_idx]:.4f} at "
               f"x = {_denormalize(X_norm[best_idx], bounds_low, bounds_high).tolist()}")
 
-    #------------------------------------------------------------------
     #Main loop
-    #------------------------------------------------------------------
     for t in range(n_iter):
 
-        #Inner loop--> gradient ascent from n_restarts random starts
         best_candidate = None
         best_mu = -torch.inf
 
@@ -169,15 +177,18 @@ def run(
                 best_mu = mu_cand[0].item()
                 best_candidate = x_cand
 
-        #Evaluate true function at best candidate
         x_phys = _denormalize(best_candidate, bounds_low, bounds_high)
         y_new = ground_truth(x_phys.unsqueeze(0), noisy=noisy_obs)
 
-        #Update dataset
         X_norm = torch.cat([X_norm, best_candidate.unsqueeze(0)], dim=0)
         y = torch.cat([y, y_new], dim=0)
+        history.append(y_new[0].item())
 
-        #Refit GP and optimize hyperparameters
+        #Sliding window: drop oldest points so Cholesky stays O(N_MAX^3)
+        if X_norm.shape[0] > N_MAX:
+            X_norm = X_norm[-N_MAX:]
+            y = y[-N_MAX:]
+
         gp.fit(X_norm, y)
         gp.optimize_hyperparameters()
 
@@ -186,9 +197,9 @@ def run(
             print(f"Iter {t + 1:02d}: y_new = {y_new[0]:.4f}  |  "
                   f"best so far = {y[best_idx]:.4f}")
 
-    #Return best observed point
     best_idx = y.argmax()
     best_x = _denormalize(X_norm[best_idx], bounds_low, bounds_high)
     best_y = y[best_idx]
 
-    return best_x, best_y
+    history_tensor = torch.tensor(history)
+    return best_x, best_y, torch.cummax(history_tensor, dim=0).values

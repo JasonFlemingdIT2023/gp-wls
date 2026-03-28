@@ -12,6 +12,9 @@ N_CANDIDATES = 1000
 #UCB exploration parameter beta. Higher-->more exploration.
 UCB_BETA = 2.0
 
+#Maximum GP training set size (sliding window, same as gp_optimizer)
+N_MAX = 30
+
 
 def run_vanilla_bo(
     ground_truth: Callable,
@@ -87,9 +90,12 @@ def run_vanilla_bo(
         x_phys = x_cand * (bounds_high - bounds_low) + bounds_low
         y_new = ground_truth(x_phys.unsqueeze(0), noisy=noisy_obs) #(1,)
 
-        #Update dataset and refit
+        #Update dataset, apply sliding window, refit
         X_norm = torch.cat([X_norm, x_cand.unsqueeze(0)], dim=0)
         y = torch.cat([y, y_new], dim=0)
+        if X_norm.shape[0] > N_MAX:
+            X_norm = X_norm[-N_MAX:]
+            y = y[-N_MAX:]
         gp.fit(X_norm, y)
         gp.optimize_hyperparameters()
 
