@@ -131,7 +131,7 @@ def save_results(results: dict[str, torch.Tensor]) -> None:
         },
         path,
     )
-    print(f"Raw data saved to {path}")
+    print(f"Raw data saved to experiments/results/{EXPERIMENT_NAME}/regret_data.pt")
 
 
 def load_results() -> dict[str, torch.Tensor]:
@@ -149,8 +149,7 @@ def load_results() -> dict[str, torch.Tensor]:
             f"No saved results found at {path}. Run the experiment first."
         )
     data = torch.load(path)
-    print(f"Loaded results from {path}")
-    print(f"  Config: {data['config']['n_seeds']} seeds, "
+    print(f"Loaded results: {data['config']['n_seeds']} seeds, "
           f"{data['config']['n_eval']} evals, "
           f"benchmark={data['config']['benchmark']}")
     return data["regret"]
@@ -269,7 +268,7 @@ def plot_regret(
         os.makedirs(RESULTS_DIR, exist_ok=True)
         path = os.path.join(RESULTS_DIR, "regret_plot.png")
         plt.savefig(path, dpi=150)
-        print(f"Plot saved to {path}")
+        print(f"Plot saved to experiments/results/{EXPERIMENT_NAME}/{os.path.basename(path)}")
     else:
         plt.show()
 
@@ -277,7 +276,7 @@ def plot_regret(
 #Entry point
 if __name__ == "__main__":
     print(f"Experiment : {EXPERIMENT_NAME}")
-    print(f"Results dir: {RESULTS_DIR}")
+    print(f"Results dir: experiments/results/{EXPERIMENT_NAME}/")
     print(f"Running    : {N_SEEDS} seeds × 4 methods × {N_EVAL} evals each")
     print(f"Total evals: {N_SEEDS * 4 * N_EVAL}\n")
 
