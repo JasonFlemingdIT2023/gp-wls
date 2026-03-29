@@ -32,36 +32,36 @@ GP-WLS reaches competitive mean regret with Vanilla BO. The higher variance is e
 ## Project Structure
 
 ```
-gp-fatigue-optimizer/
+gp-wls/
 │
 ├── src/
-│   ├── kernels/matern.py          # Matérn kernel (ν = 0.5 / 1.5 / 2.5)
+│   ├── kernels/matern.py          #Matern kernel (ν = 0.5 / 1.5 / 2.5)
 │   ├── gp/
-│   │   ├── cholesky.py            # Naive Cholesky — educational, loop-based
-│   │   ├── gaussian_process.py    # fit · predict · LML · hyperparameter opt
-│   │   └── gradients.py           # ∇μ(x) via PyTorch autograd
-│   ├── linesearch/wolfe.py        # Bracket-and-zoom Wolfe line search
-│   ├── optimizer/gp_optimizer.py  # GP-WLS main loop
+│   │   ├── cholesky.py            #Naive Cholesky --> educational, loop-based
+│   │   ├── gaussian_process.py    # fit, predict, LML, hyperparameter opt
+│   │   └── gradients.py           #grad μ(x) via PyTorch autograd
+│   ├── linesearch/wolfe.py        #Bracket-and-zoom Wolfe line search
+│   ├── optimizer/gp_optimizer.py  #GP-WLS main loop
 │   ├── ground_truth/
-│   │   ├── hartmann.py            # Hartmann-6D benchmark
-│   │   └── fatigue_life.py        # S355 fatigue life model (secondary)
+│   │   ├── hartmann.py            #Hartmann-6D benchmark
+│   │   └── fatigue_life.py        #S355 fatigue life model (secondary)
 │   └── baselines/
 │       ├── random_search.py
-│       ├── vanilla_bo.py          # UCB acquisition
-│       └── ars.py                 # Augmented Random Search (Mania et al. 2018)
+│       ├── vanilla_bo.py          #UCB acquisition
+│       └── ars.py                 #Augmented Random Search (Mania et al. 2018)
 │
 ├── experiments/
-│   ├── compare.py                 # 4 methods × 20 seeds × 60 evals
+│   ├── compare.py                 #4 methods × 20 seeds × 60 evals
 │   └── results/hartmann_comparison/
-│       ├── regret_data.pt         # raw tensors — replot without rerunning
+│       ├── regret_data.pt         #raw tensors --> replot without rerunning
 │       ├── regret_log.png
 │       ├── regret_linear.png
 │       └── regret_boxplot.png
 │
 └── notebooks/
-    ├── gp_and_kernel.ipynb        # GP theory, Matérn vs RBF, LML
-    ├── GP-WLS.ipynb               # Method: posterior gradient, line search, GIBO connection
-    └── experiments.ipynb          # Results, plots, discussion
+    ├── gp_and_kernel.ipynb        #GP theory, Matérn vs RBF, LML
+    ├── GP-WLS.ipynb               #Method: posterior gradient, line search, GIBO connection
+    └── experiments.ipynb          #Results, plots, discussion
 ```
 
 ---
@@ -69,11 +69,11 @@ gp-fatigue-optimizer/
 ## Getting Started
 
 ```bash
-git clone https://github.com/JasonFlemingdIT2023/gp-fatigue-optimizer.git
-cd gp-fatigue-optimizer
+git clone https://github.com/JasonFlemingdIT2023/gp-wls.git
+cd gp-wls
 
 conda env create -f environment.yml
-conda activate gp-fatigue
+conda activate gp-wls
 ```
 
 Run the comparison experiment:

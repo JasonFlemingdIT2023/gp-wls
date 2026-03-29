@@ -1,4 +1,4 @@
-name: gp-fatigue
+name: gp-wls
 channels:
   - conda-forge
   - defaults

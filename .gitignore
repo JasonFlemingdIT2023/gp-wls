@@ -2,6 +2,10 @@
 __pycache__/
 *.pyc
 
+#Tests
+test_*.py
+*_test.py
+
 #Jupyter
 .ipynb_checkpoints/
 
