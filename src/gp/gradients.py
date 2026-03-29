@@ -1,6 +1,6 @@
 import torch
 
-from .gaussian_process import GaussianProcess
+from src.gp.gaussian_process import GaussianProcess
 
 
 def posterior_gradient(gp: GaussianProcess, x_star: torch.Tensor) -> torch.Tensor:

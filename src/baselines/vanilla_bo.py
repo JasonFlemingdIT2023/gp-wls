@@ -1,8 +1,8 @@
 from typing import Callable
 import torch
 
-from gp.gaussian_process import GaussianProcess
-from kernels.matern import MaternKernel
+from src.gp.gaussian_process import GaussianProcess
+from src.kernels.matern import MaternKernel
 
 
 #Number of random candidates to evaluate the UCB acquisition function over

@@ -1,10 +1,10 @@
 from typing import Callable
 import torch
 
-from gp.gaussian_process import GaussianProcess
-from gp.gradients import posterior_gradient
-from linesearch.wolfe import wolfe_line_search
-from kernels.matern import MaternKernel
+from src.gp.gaussian_process import GaussianProcess
+from src.gp.gradients import posterior_gradient
+from src.linesearch.wolfe import wolfe_line_search
+from src.kernels.matern import MaternKernel
 
 
 #Maximum number of points kept in the GP training set.

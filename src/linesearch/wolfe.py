@@ -1,7 +1,7 @@
 import torch
 
-from gp.gaussian_process import GaussianProcess
-from gp.gradients import posterior_gradient
+from src.gp.gaussian_process import GaussianProcess
+from src.gp.gradients import posterior_gradient
 
 """scipy.optmize.line_search is a good alternative to perform a line search 
 with strong wolfe conditions. However, this alternative uses numpy.

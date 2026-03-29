@@ -1,7 +1,7 @@
 import math
 import torch
 
-from .cholesky import cholesky, solve_cholesky
+from src.gp.cholesky import cholesky, solve_cholesky
 
 
 class GaussianProcess:

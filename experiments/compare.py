@@ -24,16 +24,16 @@ Usage:
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
 import matplotlib.pyplot as plt
 
-from ground_truth.hartmann import hartmann, GLOBAL_MAX_VALUE
-from optimizer.gp_optimizer import run as run_gibo, N_MAX as GIBO_N_MAX
-from baselines.vanilla_bo import run_vanilla_bo, N_MAX as VBO_N_MAX
-from baselines.ars import run_ars
-from baselines.random_search import run_random_search
+from src.ground_truth.hartmann import hartmann, GLOBAL_MAX_VALUE
+from src.optimizer.gp_optimizer import run as run_gibo, N_MAX as GIBO_N_MAX
+from src.baselines.vanilla_bo import run_vanilla_bo, N_MAX as VBO_N_MAX
+from src.baselines.ars import run_ars
+from src.baselines.random_search import run_random_search
 
 
 
